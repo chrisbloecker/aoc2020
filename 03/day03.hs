@@ -7,7 +7,7 @@ module Main
   where
 --------------------------------------------------------------------------------
 import Control.Applicative               ((<|>))
-import Control.Monad                     (forM_)
+import Control.Monad                     (forM)
 import Data.Attoparsec.ByteString        (Parser, parseOnly)
 import Data.Attoparsec.ByteString.Char8
 import Data.ByteString                   (ByteString)
@@ -66,7 +66,9 @@ main = do
 
   case input of
     Left err -> putStrLn err
-    Right m@Matrix{..} ->
-      forM_ ([1..] `zip` [slope1, slope2, slope3, slope4, slope5]) $ \(x, slope) ->
-        let count = length . filter (==Tree) . map (at m) $ slope height
-        in putStrLn . concat $ ["slope ", show x, ": ", show count]
+    Right m@Matrix{..} -> do
+      counts <- forM ([1..] `zip` [slope1, slope2, slope3, slope4, slope5]) $ \(x, slope) -> do
+                  let count = length . filter (==Tree) . map (at m) $ slope height
+                  putStrLn . concat $ ["slope ", show x, ": ", show count]
+                  return count
+      print (product counts)

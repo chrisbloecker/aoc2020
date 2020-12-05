@@ -22,12 +22,12 @@ data SeatAddr = SeatAddr { row :: [Int]
   deriving (Show)
 
 seatToDecimal :: SeatAddr -> (Int, Int)
-seatToDecimal SeatAddr{..} = ( convert 0 0 (reverse row)
-                             , convert 0 0 (reverse col)
+seatToDecimal SeatAddr{..} = ( convert (reverse row)
+                             , convert (reverse col)
                              )
   where
-    convert _  s []     = s
-    convert ix s (b:bs) = convert (ix+1) (s+b*2^ix) bs
+    convert :: [Int] -> Int
+    convert bs = foldr (\(ix,b) s -> s+b*2^ix) 0 ([0..] `zip` bs)
 
 seatID :: SeatAddr -> Int
 seatID seatAddr = let (rowID, colID) = seatToDecimal seatAddr

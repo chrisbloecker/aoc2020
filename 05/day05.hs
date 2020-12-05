@@ -7,13 +7,13 @@ module Main
   where
 --------------------------------------------------------------------------------
 import Control.Monad                     (forM, replicateM)
-import Data.Attoparsec.ByteString        (Parser, parseOnly)
-import Data.Attoparsec.ByteString.Char8
-import Data.Attoparsec.Combinator        (choice)
-import Data.ByteString                   (ByteString)
 import Data.List                         (elem, notElem)
+import Data.Text                         (Text)
+import Data.Void                         (Void)
+import Text.Megaparsec
+import Text.Megaparsec.Char
 --------------------------------------------------------------------------------
-import qualified Data.ByteString as BS   (readFile)
+import qualified Data.Text.IO as T       (readFile)
 --------------------------------------------------------------------------------
 
 data SeatAddr = SeatAddr { row :: [Int]
@@ -35,33 +35,33 @@ seatID seatAddr = let (rowID, colID) = seatToDecimal seatAddr
 
 --------------------------------------------------------------------------------
 
-parseInput :: ByteString -> Either String [SeatAddr]
-parseInput = parseOnly $ do seats <- many' $ do row <- replicateM 7 rowAddr
-                                                col <- replicateM 3 colAddr
-                                                endOfLine
-                                                return SeatAddr {..}
-                            endOfInput
-                            return seats
+type Parser = Parsec Void Text
 
-    where
-      rowAddr :: Parser Int
-      rowAddr = choice [ char 'F' >> return 0
-                       , char 'B' >> return 1
-                       ]
+parseInput :: Parser [SeatAddr]
+parseInput = many $ do row <- replicateM 7 rowAddr
+                       col <- replicateM 3 colAddr
+                       eol
+                       return SeatAddr {..}
 
-      colAddr :: Parser Int
-      colAddr = choice [ char 'L' >> return 0
-                       , char 'R' >> return 1
-                       ]
+  where
+    rowAddr :: Parser Int
+    rowAddr = choice [ char 'F' >> return 0
+                     , char 'B' >> return 1
+                     ]
+
+    colAddr :: Parser Int
+    colAddr = choice [ char 'L' >> return 0
+                     , char 'R' >> return 1
+                     ]
 
 --------------------------------------------------------------------------------
 
 main :: IO ()
 main = do
-  input <- parseInput <$> BS.readFile "input.txt"
+  input <- parse parseInput "input.txt" <$> T.readFile "input.txt"
 
   case input of
-    Left err -> putStrLn err
+    Left bundle -> putStr (errorBundlePretty bundle)
     Right seats -> do
       let seatIDs = map seatID seats
 

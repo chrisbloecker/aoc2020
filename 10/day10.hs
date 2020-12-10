@@ -4,6 +4,7 @@
 module Main
   where
 --------------------------------------------------------------------------------
+import Control.Arrow                ((&&&))
 import Data.List                    (sort)
 import Data.Text                    (Text)
 import Data.Void                    (Void)
@@ -22,9 +23,15 @@ parseInput = many (decimal <* eol) <* eof
 --------------------------------------------------------------------------------
 
 splitOn :: Eq a => a -> [a] -> [[a]]
-splitOn _ [] = []
-splitOn y xs = (takeWhile (/=y) . dropWhile (==y)) xs
-             : splitOn y (dropWhile (==y) . dropWhile (/=y) . dropWhile (==y) $ xs)
+splitOn y = go []
+  where
+    go []  []     = []
+    go acc []     = [acc]
+    go []  (x:xs) | x == y    =       go []           xs
+                  | otherwise =       go [x]          xs
+    go acc (x:xs) | x == y    = acc : go []           xs
+                  | otherwise =       go (acc ++ [x]) xs
+
 
 combinations :: (Eq a, Num a) => a -> a
 combinations 0 = 0
@@ -41,16 +48,17 @@ main = do
     Left bundle -> putStr (errorBundlePretty bundle)
     Right numbers -> do
       let joltages = sort (maximum numbers + 3 : numbers)
-          gaps     = map ((\x -> -x) . uncurry (-))
-                   $ (0 : joltages) `zip` joltages
-          sections = splitOn 3 gaps
+          gaps     = zipWith (-) joltages (0 : joltages)
 
       putStrLn . ("(1) " ++)
                . show
-               $ (length . filter (==1) $ gaps) * (length . filter (==3) $ gaps)
+               . uncurry (*)
+               . ((length . filter (==1)) &&& (length . filter (==3)))
+               $ gaps
 
       putStrLn . ("(2) " ++)
                . show
                . product
                . map (combinations . length)
-               $ sections
+               . splitOn 3
+               $ gaps

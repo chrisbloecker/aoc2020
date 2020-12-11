@@ -1,20 +1,22 @@
 #!/usr/bin/env stack
 -- stack --resolver lts-16.24 script
 
+{-# LANGUAGE DeriveAnyClass  #-}
+{-# LANGUAGE DeriveGeneric   #-}
+{-# LANGUAGE LambdaCase      #-}
 {-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE LambdaCase #-}
 
 module Main
   where
 --------------------------------------------------------------------------------
 import Data.Text                    (Text)
 import Data.Void                    (Void)
-import Data.Vector                  (Vector, (!), fromList)
+import Data.Vector                  (Vector, (!))
 import Text.Megaparsec
 import Text.Megaparsec.Char
 --------------------------------------------------------------------------------
 import qualified Data.Text.IO as T  (readFile)
-import qualified Data.Vector  as V  (take, drop, foldr, null, filter, length)
+import qualified Data.Vector  as V  (take, drop, foldr, null, filter, length, fromList)
 --------------------------------------------------------------------------------
 
 data Matrix a = Matrix { height :: Int
@@ -74,7 +76,7 @@ parseInput = do
 
   let height = length . filter (not . null) $ rows
       width  = length . head $ rows
-      matrix = fromList . concat $ rows
+      matrix = V.fromList . concat $ rows
 
   return Matrix{..}
 
@@ -87,11 +89,11 @@ parseInput = do
 
 --------------------------------------------------------------------------------
 
-neighbours :: Neighbours
-neighbours m s = [ s +> d | d <- [minBound .. maxBound], inBounds m (s +> d)]
+directNeighbours :: Neighbours
+directNeighbours m s = [ s +> d | d <- [minBound .. maxBound], inBounds m (s +> d)]
 
-lineOfSight :: Neighbours
-lineOfSight m s = [ s >+ d | d <- [minBound .. maxBound], inBounds m (s >+ d)]
+inLineOfSight :: Neighbours
+inLineOfSight m s = [ s >+ d | d <- [minBound .. maxBound], inBounds m (s >+ d)]
   where
     (>+) :: Seat -> Direction -> Seat
     s >+ d = let s' = s +> d
@@ -99,25 +101,24 @@ lineOfSight m s = [ s >+ d | d <- [minBound .. maxBound], inBounds m (s >+ d)]
                   then s'
                   else s' >+ d
 
-takeOrLeave :: Neighbours -> DecisionRule -> DecisionRule -> Matrix Cell -> Seat -> Cell
-takeOrLeave neighbours takeIf leaveIf m@Matrix{..} s = case m `at` s of
-    Free  -> if takeIf  takenNeighbours then Taken else Free
-    Taken -> if leaveIf takenNeighbours then Free  else Taken
-    Floor -> Floor
-  where
-    takenNeighbours :: Int
-    takenNeighbours = length . filter (== Taken) . map (at m) $ neighbours m s
-
 fixpoint :: Neighbours -> DecisionRule -> DecisionRule -> Matrix Cell -> Matrix Cell
-fixpoint neighbours takeIf leaveIf m@Matrix{..} =
-  let next = m { matrix = fromList . map (takeOrLeave neighbours takeIf leaveIf m) $ seats }
-  in if m == next
-       then m
-       else fixpoint neighbours takeIf leaveIf next
-
+fixpoint neighbours takeIf leaveIf m@Matrix{..} = go m
   where
-      seats :: [Seat]
-      seats = [Seat x y | y <- [0 .. height-1], x <- [0 .. width-1]]
+    go :: Matrix Cell -> Matrix Cell
+    go m = let next = m { matrix = V.fromList [takeOrLeave m seat | seat <- seats] }
+           in if m == next
+                then m
+                else go next
+
+    takeOrLeave :: Matrix Cell -> Seat -> Cell
+    takeOrLeave m s = let takenNeighbours = length [ () | n <- neighbours m s , m `at` n == Taken]
+                      in case m `at` s of
+                           Free  -> if takeIf  takenNeighbours then Taken else Free
+                           Taken -> if leaveIf takenNeighbours then Free  else Taken
+                           Floor -> Floor
+
+    seats :: [Seat]
+    seats = [Seat x y | y <- [0 .. height-1], x <- [0 .. width-1]]
 
 main :: IO ()
 main = do
@@ -126,8 +127,8 @@ main = do
   case input of
     Left bundle -> putStr (errorBundlePretty bundle)
     Right m -> do
-      let fp1 = fixpoint neighbours  (== 0) (>= 4) m
-      print $ "(1) " ++ show (V.length . V.filter (== Taken) . matrix $ fp1)
+      let fp1 = fixpoint directNeighbours (== 0) (>= 4) m
+      putStrLn $ "(1) " ++ show (V.length . V.filter (== Taken) . matrix $ fp1)
 
-      let fp2 = fixpoint lineOfSight (== 0) (>= 5) m
-      print $ "(2) " ++ show (V.length . V.filter (== Taken) . matrix $ fp2)
+      let fp2 = fixpoint inLineOfSight    (== 0) (>= 5) m
+      putStrLn $ "(2) " ++ show (V.length . V.filter (== Taken) . matrix $ fp2)

@@ -4,15 +4,9 @@
 module Main
   where
 --------------------------------------------------------------------------------
-import Data.List                    (intercalate)
-import Data.Map                     (Map)
-import Data.Text                    (Text)
-import Data.Void                    (Void)
-import Text.Megaparsec
-import Text.Megaparsec.Char
-import Text.Megaparsec.Char.Lexer
+import Data.Map                (Map)
 --------------------------------------------------------------------------------
-import qualified Data.Map     as M  (fromList, insert, lookup)
+import qualified Data.Map as M (fromList, insert, lookup)
 --------------------------------------------------------------------------------
 
 mkSequence :: [Int] -> [Int]

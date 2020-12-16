@@ -114,4 +114,4 @@ main = do
                                , and (zipWith (==) "departure" (unpack columnName))
                                ]
 
-      putStrLn $ "(2) " ++ show (product [yourTicket !! ix | ix <- departureColumns])
+      putStrLn $ "(2) " ++ show (product . map (yourTicket !!) $ departureColumns)

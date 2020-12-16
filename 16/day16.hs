@@ -15,7 +15,6 @@ import Text.Megaparsec
 import Text.Megaparsec.Char
 import Text.Megaparsec.Char.Lexer
 --------------------------------------------------------------------------------
-import qualified Data.Map     as M  (empty, insert)
 import qualified Data.Text.IO as T  (readFile)
 --------------------------------------------------------------------------------
 

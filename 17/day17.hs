@@ -19,7 +19,7 @@ import qualified Data.Vector  as V  (take, drop, foldr, null, filter, length, fr
 data Grid a = Grid { height :: Int  -- y
                    , width  :: Int  -- x
                    , depth  :: Int  -- z
-                   --, time   :: Int  -- w
+                   , time   :: Int  -- w
                    , grid   :: Vector a
                    }
   deriving (Eq)
@@ -36,10 +36,11 @@ instance Show a => Show (Grid a) where
                                   ++ showLayer (V.drop width layer)
 
 at :: Grid a -> Coordinate -> a
-at Grid{..} (Coordinate x y z) = grid ! ( z * width * height
-                                        + y * width
-                                        + x
-                                        )
+at Grid{..} (Coordinate x y z t) = grid ! ( t * width * height * depth
+                                          + z * width * height
+                                          + y * width
+                                          + x
+                                          )
 
 data Cube = Active
           | Inactive
@@ -49,10 +50,10 @@ instance Show Cube where
   show Active   = "#"
   show Inactive = "."
 
-data Coordinate = Coordinate Int Int Int
+data Coordinate = Coordinate Int Int Int Int
 
 instance Show Coordinate where
-  show (Coordinate x y z) = "(" ++ show x ++ "," ++ show y ++ "," ++ show z ++ ")"
+  show (Coordinate x y z t) = "(" ++ show x ++ "," ++ show y ++ "," ++ show z ++ "," ++ show t ++ ")"
 
 --------------------------------------------------------------------------------
 
@@ -65,6 +66,7 @@ parseInput = do
   let height = length . filter (not . null) $ rows
       width  = length . head $ rows
       depth  = 1
+      time   = 1
       grid   = V.fromList . concat $ rows
 
   return Grid{..}
@@ -78,46 +80,59 @@ parseInput = do
 --------------------------------------------------------------------------------
 
 inBounds :: Coordinate -> Grid a -> Bool
-inBounds (Coordinate x y z) Grid{..} = 0 <= x && x < width
-                                    && 0 <= y && y < height
-                                    && 0 <= z && z < depth
+inBounds (Coordinate x y z t) Grid{..} = 0 <= x && x < width
+                                      && 0 <= y && y < height
+                                      && 0 <= z && z < depth
+                                      && 0 <= t && t < time
 
-step :: Grid Cube -> Grid Cube
-step g@Grid{..} = Grid { width  = width  + 2
-                       , height = height + 2
-                       , depth  = depth  + 2
-                       , grid   = V.fromList [ let n = c `activeNeighbours` g
-                                               in if c `inBounds` g
-                                                    then case g `at` c of
-                                                      Inactive -> if           n == 3 then Active else Inactive
-                                                      Active   -> if n == 2 || n == 3 then Active else Inactive
-                                                    else if n == 3 then Active else Inactive
-                                             | z <- [ -1 .. depth  ]
-                                             , y <- [ -1 .. height ]
-                                             , x <- [ -1 .. width  ]
-                                             , c <- [ Coordinate x y z ]
-                                             ]
-                       }
+step :: Bool -> Grid Cube -> Grid Cube
+step useTime g@Grid{..} = Grid { width  = width  + 2
+                               , height = height + 2
+                               , depth  = depth  + 2
+                               , time   = if useTime
+                                            then time + 2
+                                            else time
+                               , grid   = V.fromList [ let n = c `activeNeighbours` g
+                                                       in if c `inBounds` g
+                                                            then case g `at` c of
+                                                              Inactive -> if           n == 3 then Active else Inactive
+                                                              Active   -> if n == 2 || n == 3 then Active else Inactive
+                                                            else if n == 3 then Active else Inactive
+                                                     | t <- if useTime
+                                                              then [ -1 .. time ]
+                                                              else [ 0 ]
+                                                     , z <- [ -1 .. depth  ]
+                                                     , y <- [ -1 .. height ]
+                                                     , x <- [ -1 .. width  ]
+                                                     , c <- [ Coordinate x y z t ]
+                                                     ]
+                               }
   where
     activeNeighbours :: Coordinate -> Grid Cube -> Int
-    activeNeighbours c@(Coordinate x y z) g = length
-                                            . filter (== Active)
-                                            $ [ if c' `inBounds` g
-                                                  then g `at` c'
-                                                  else Inactive
-                                              | z' <- [ z-1, z, z+1 ]
-                                              , y' <- [ y-1, y, y+1 ]
-                                              , x' <- [ x-1, x, x+1 ]
-                                              , not (z' == z && y' == y && x' == x)
-                                              , c' <- [ Coordinate x' y' z' ]
-                                              ]
+    activeNeighbours c@(Coordinate x y z t) g = length
+                                              . filter (== Active)
+                                              $ [ if c' `inBounds` g
+                                                    then g `at` c'
+                                                    else Inactive
+                                                | t' <- if useTime
+                                                          then [ t-1, t, t+1]
+                                                          else [ 0 ]
+                                                , z' <- [ z-1, z, z+1 ]
+                                                , y' <- [ y-1, y, y+1 ]
+                                                , x' <- [ x-1, x, x+1 ]
+                                                , not (t' == t && z' == z && y' == y && x' == x)
+                                                , c' <- [ Coordinate x' y' z' t' ]
+                                                ]
 
 main :: IO ()
 main = do
-  input <- parse parseInput "input.txt" <$> T.readFile "small.txt"
+  input <- parse parseInput "input.txt" <$> T.readFile "input.txt"
 
   case input of
     Left bundle -> putStr (errorBundlePretty bundle)
     Right g -> do
-      let g3 = foldr (.) id (replicate 6 step) g
+      let g3 = foldr (.) id (replicate 6 (step False)) g
       putStrLn $ "(1) " ++ show (length . filter (== Active) . V.toList . grid $ g3)
+
+      let g4 = foldr (.) id (replicate 6 (step True)) g
+      putStrLn $ "(2) " ++ show (length . filter (== Active) . V.toList . grid $ g4)

@@ -8,13 +8,11 @@ module Main
 --------------------------------------------------------------------------------
 import Control.Monad                              (void)
 import Control.Monad.Combinators.Expr
-import Data.List                                  (intercalate)
 import Data.Text                                  (Text)
 import Data.Void                                  (Void)
 import Text.Megaparsec
 import Text.Megaparsec.Char
 --------------------------------------------------------------------------------
-import qualified Data.Map                   as M  (empty, insert)
 import qualified Data.Text.IO               as T  (readFile)
 import qualified Text.Megaparsec.Char.Lexer as L
 --------------------------------------------------------------------------------

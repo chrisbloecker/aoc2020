@@ -1,9 +1,7 @@
 #!/usr/bin/env stack
 -- stack --resolver lts-16.24 script
 
-{-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RecordWildCards   #-}
 
 module Main
   where
@@ -24,7 +22,11 @@ import qualified Text.Megaparsec.Char.Lexer as L
 data Expr = Mul Expr Expr
           | Add Expr Expr
           | Val Int
-  deriving (Show)
+
+instance Show Expr where
+  show (Mul e1 e2) = "(" ++ show e1 ++ "*" ++ show e2 ++ ")"
+  show (Add e1 e2) = "(" ++ show e1 ++ "+" ++ show e2 ++ ")"
+  show (Val v)     = show v
 
 eval :: Expr -> Int
 eval (Mul e1 e2) = eval e1 * eval e2

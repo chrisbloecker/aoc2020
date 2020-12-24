@@ -12,6 +12,12 @@ import Data.Maybe              (fromJust)
 import qualified Data.Map as M
 --------------------------------------------------------------------------------
 
+{-# INLINABLE dest #-}
+dest :: Int -> Int -> [Int] -> Int
+dest current len xs =
+  let next = if current == 1 then len else current - 1
+  in if next `elem` xs then dest next len xs else next
+
 move1 :: Int -> [Int] -> [Int]
 move1 n xs = go n (length xs) (fromList xs)
   where
@@ -28,32 +34,18 @@ move1 n xs = go n (length xs) (fromList xs)
                        . rotR                              -- focus on the first element to the right
                        $ xs
 
-    dest :: Int -> Int -> [Int] -> Int
-    dest current len xs =
-      let next = if current == 1 then len else current - 1
-      in if next `elem` xs then dest next len xs else next
-
 move2 :: Int -> Map Int Int -> (Int, Map Int Int)
-move2 current m = let a  = m ! current
-                      b  = m ! a
-                      c  = m ! b
-                      d  = m ! c
-                      l  = dest current [a,b,c]
-                      r  = m ! l
-                      m' = M.insert c       r
+move2 current m = let a  = m ! current                     -- first,
+                      b  = m ! a                           -- second, and
+                      c  = m ! b                           -- third element to move
+                      d  = m ! c                           -- next cup
+                      l  = dest current (M.size m) [a,b,c] -- target
+                      r  = m ! l                           -- right of target
+                      m' = M.insert c       r              -- new map
                          . M.insert l       a
                          . M.insert current d
                          $ m
                   in (d, m')
-  where
-    dest :: Int -> [Int] -> Int
-    dest current movingCups = let l = if current - 1 == 0
-                                        then M.size m
-                                        else current - 1
-                              in if l `elem` movingCups
-                                   then dest l movingCups
-                                   else l
-
 
 main :: IO ()
 main = do

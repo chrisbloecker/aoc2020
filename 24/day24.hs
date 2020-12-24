@@ -2,7 +2,6 @@
 -- stack --resolver lts-16.24 script
 
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RecordWildCards   #-}
 
 module Main
   where
@@ -12,7 +11,6 @@ import Data.Text                    (Text)
 import Data.Void                    (Void)
 import Text.Megaparsec
 import Text.Megaparsec.Char
-import Text.Megaparsec.Char.Lexer
 --------------------------------------------------------------------------------
 import qualified Data.Text.IO as T (readFile)
 import qualified Data.Set     as S
@@ -64,6 +62,8 @@ day black = let white = foldr S.union S.empty (S.map neighbours black) \\ black
     turnBlack :: Tile -> Bool
     turnBlack t = let s = S.size $ neighbours t `S.intersection` black
                   in s == 2
+
+--------------------------------------------------------------------------------
 
 main :: IO ()
 main = do

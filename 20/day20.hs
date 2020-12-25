@@ -240,14 +240,7 @@ layPuzzle puzzle =
 1#    ##    ##    ###
 2 #  #  #  #  #  #
 -}
-isSeaMonster :: Piece -> Coordinate -> Bool
-isSeaMonster tile (Coordinate x y) =
-  let seaMonsterCoordinates = [ Coordinate (x+18)  y                                           ]
-                           ++ [ Coordinate (x+x') (y+1) | x' <- [ 0, 5, 6, 11, 12, 17, 18, 19] ]
-                           ++ [ Coordinate (x+x') (y+2) | x' <- [ 1, 4, 7, 10, 13, 16        ] ]
-  in all (`inBounds` tile)      seaMonsterCoordinates
-  && all ((== Black) . at tile) seaMonsterCoordinates
-
+-- returns the coordinates that belong to a sea monster, they could be overlapping
 seaMonsterCoordinates :: Piece -> Coordinate -> [Coordinate]
 seaMonsterCoordinates tile (Coordinate x y) =
   let seaMonsterCoordinates = [ Coordinate (x+18)  y                                           ]
@@ -273,15 +266,14 @@ main = do
       putStrLn $ "(1) " ++ show (product . map (tileId . fst) $ corners)
 
       let solution@Tile{..} = layPuzzle puzzle
-          seaMonsters       = length . filter id . map (isSeaMonster solution)
-                            $ [ Coordinate x y
-                              | y <- [ 0 .. height - 1 ]
-                              , x <- [ 0 .. width  - 1 ]
-                              ]
-          seaMonsterPixels  = S.size . S.fromList . concatMap (seaMonsterCoordinates solution)
-                            $ [ Coordinate x y
-                              | y <- [ 0 .. height - 1 ]
-                              , x <- [ 0 .. width  - 1 ]
-                              ]
+          -- count the number of sea monster pixels for each orientation of the assembled puzzle
+          seaMonsterPixels  = maximum
+                            . (flip map) (orientations solution)
+                            $ \solution -> S.size . S.fromList . concatMap (seaMonsterCoordinates solution)
+                                         $ [ Coordinate x y
+                                         | y <- [ 0 .. height - 1 ]
+                                         , x <- [ 0 .. width  - 1 ]
+                                         ]
+          -- "black" pixels in the entire image
           blackPixels       = length . filter (== Black) . V.toList $ pixels
       putStrLn $ "(2) " ++ show (blackPixels - seaMonsterPixels)

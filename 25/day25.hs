@@ -13,7 +13,7 @@ reverseLoop target = go 7 1
                     | otherwise   = go (x * 7 `mod` 20201227) (loop + 1)
 
 forwardLoop :: Int -> Int -> Int
-forwardLoop subject loop = go 1 loop
+forwardLoop subject = go 1
   where go !x !0    = x
         go !x !loop = go (x * subject `mod` 20201227) (loop - 1)
 
